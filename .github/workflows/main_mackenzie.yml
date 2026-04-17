@@ -34,7 +34,7 @@ jobs:
 
       # Passo 3: Configura a versão do Python a ser usada no ambiente de build
       - name: Set up Python version
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13' # Versão do Python utilizada no projeto
 
