@@ -1,81 +1,110 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+# Nome do workflow exibido na aba "Actions" do GitHub
+name: Build and deploy Python app to Vercel
 
-name: Build and deploy Python app to Azure Web App - Mackenzie
-
+# Define os gatilhos que disparam este workflow automaticamente
 on:
+  # Executa o workflow sempre que houver um push na branch "main"
   push:
     branches:
       - main
+  # Permite executar o workflow manualmente pela interface do GitHub Actions
   workflow_dispatch:
 
+# Define os jobs (etapas principais) do pipeline
 jobs:
+
+  # -------------------------------------------------------
+  # JOB 1: build — responsável por instalar e preparar o app
+  # -------------------------------------------------------
   build:
+    # Usa uma máquina virtual com Ubuntu (Linux) para executar os passos
     runs-on: ubuntu-latest
+
+    # Permissões necessárias para este job
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read # Permite apenas leitura do conteúdo do repositório
 
     steps:
+      # Passo 1: Imprime uma mensagem no console antes de iniciar o build
+      - name: Iniciando pipeline
+        run: echo "Iniciando o deploy do meu projeto!"
+
+      # Passo 2: Faz o checkout do código do repositório para a máquina virtual
       - uses: actions/checkout@v4
 
+      # Passo 3: Configura a versão do Python a ser usada no ambiente de build
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.13' # Versão do Python utilizada no projeto
 
+      # Passo 4: Cria e ativa um ambiente virtual Python isolado para as dependências
       - name: Create and start virtual environment
         run: |
           python -m venv venv
           source venv/bin/activate
-      
+
+      # Passo 5: Instala todas as dependências listadas no arquivo requirements.txt
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
+      # Passo 6: Compacta os arquivos do projeto em um zip para ser enviado como artefato
       - name: Zip artifact for deployment
         run: zip release.zip ./* -r
 
+      # Passo 7: Faz o upload do artefato zipado para ser usado pelo job de deploy
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
-          name: python-app
+          name: python-app # Nome do artefato gerado
           path: |
-            release.zip
-            !venv/
+            release.zip  # Inclui o arquivo zipado
+            !venv/       # Exclui a pasta do ambiente virtual do artefato
 
+  # -------------------------------------------------------
+  # JOB 2: deploy — responsável por publicar o app na Vercel
+  # -------------------------------------------------------
   deploy:
+    # Usa uma máquina virtual com Ubuntu (Linux) para executar os passos
     runs-on: ubuntu-latest
+
+    # Este job só executa após o job "build" ser concluído com sucesso
     needs: build
+
+    # Define o ambiente de deploy como "Production"
     environment:
       name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    # Permissões necessárias para este job
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      contents: read # Permite leitura do conteúdo do repositório
 
     steps:
+      # Passo 1: Baixa o artefato gerado pelo job de build
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: python-app
+          name: python-app # Nome do artefato a ser baixado
 
+      # Passo 2: Descompacta o artefato para ter acesso aos arquivos do projeto
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2625D0D765264B67BA91D0B4647EA8EC }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_355ECC283CC243B3B0F8BB24D1E138D7 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_638D89F46DA9483BB845CE8FB6E9CCA0 }}
+      # Passo 3: Faz o checkout completo do repositório (necessário para o deploy via Vercel CLI)
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: 'Mackenzie'
-          slot-name: 'Production'
-          
+      # Passo 4: Instala o Vercel CLI globalmente via npm para realizar o deploy
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Passo 5: Faz o deploy do projeto para a Vercel em produção
+      # As variáveis de ambiente (secrets) são configuradas no repositório GitHub:
+      # VERCEL_TOKEN    — token de autenticação da conta Vercel
+      # VERCEL_ORG_ID   — ID da organização/conta na Vercel
+      # VERCEL_PROJECT_ID — ID do projeto criado na Vercel
+      - name: Deploy to Vercel
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}         # ID da organização na Vercel
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }} # ID do projeto na Vercel

@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Monitora e atualiza dependências Python (pip) automaticamente
+  - package-ecosystem: "pip"
+    directory: "/"        # Verifica o requirements.txt na raiz do projeto
+    schedule:
+      interval: "weekly"  # Verifica atualizações uma vez por semana
+
+  # Monitora e atualiza as GitHub Actions usadas nos workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"  # Verifica atualizações uma vez por semana
