@@ -14,7 +14,7 @@ on:
 jobs:
 
   # -------------------------------------------------------
-  # JOB 1: build — responsável por instalar e preparar o app
+  # JOB 1: build — responsável por instalar e validar o app
   # -------------------------------------------------------
   build:
     # Usa uma máquina virtual com Ubuntu (Linux) para executar os passos
@@ -48,19 +48,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # Passo 6: Compacta os arquivos do projeto em um zip para ser enviado como artefato
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      # Passo 7: Faz o upload do artefato zipado para ser usado pelo job de deploy
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app # Nome do artefato gerado
-          path: |
-            release.zip  # Inclui o arquivo zipado
-            !venv/       # Exclui a pasta do ambiente virtual do artefato
-
   # -------------------------------------------------------
   # JOB 2: deploy — responsável por publicar o app na Vercel
   # -------------------------------------------------------
@@ -80,28 +67,18 @@ jobs:
       contents: read # Permite leitura do conteúdo do repositório
 
     steps:
-      # Passo 1: Baixa o artefato gerado pelo job de build
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app # Nome do artefato a ser baixado
-
-      # Passo 2: Descompacta o artefato para ter acesso aos arquivos do projeto
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-
-      # Passo 3: Faz o checkout completo do repositório (necessário para o deploy via Vercel CLI)
+      # Passo 1: Faz o checkout do código para a máquina virtual do job de deploy
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Passo 4: Instala o Vercel CLI globalmente via npm para realizar o deploy
+      # Passo 2: Instala o Vercel CLI globalmente via npm para realizar o deploy
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      # Passo 5: Faz o deploy do projeto para a Vercel em produção
+      # Passo 3: Faz o deploy do projeto para a Vercel em produção
       # As variáveis de ambiente (secrets) são configuradas no repositório GitHub:
-      # VERCEL_TOKEN    — token de autenticação da conta Vercel
-      # VERCEL_ORG_ID   — ID da organização/conta na Vercel
+      # VERCEL_TOKEN      — token de autenticação da conta Vercel
+      # VERCEL_ORG_ID     — ID da organização/conta na Vercel
       # VERCEL_PROJECT_ID — ID do projeto criado na Vercel
       - name: Deploy to Vercel
         run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
