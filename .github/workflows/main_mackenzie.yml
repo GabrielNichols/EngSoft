@@ -30,7 +30,7 @@ jobs:
         run: echo "Iniciando o deploy do meu projeto!"
 
       # Passo 2: Faz o checkout do código do repositório para a máquina virtual
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Passo 3: Configura a versão do Python a ser usada no ambiente de build
       - name: Set up Python version
@@ -69,7 +69,7 @@ jobs:
     steps:
       # Passo 1: Faz o checkout do código para a máquina virtual do job de deploy
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Passo 2: Instala o Vercel CLI globalmente via npm para realizar o deploy
       - name: Install Vercel CLI
